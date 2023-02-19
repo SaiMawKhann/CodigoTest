@@ -38,10 +38,10 @@ namespace CodigoTest.Controllers
             {
                 return NotFound();
             }
-            BackgroundJob.Enqueue(() => Console.WriteLine("GGWP"));
-            BackgroundJob.Schedule(() => Console.WriteLine("Schedule"),TimeSpan.FromMinutes(1));
 
-            RecurringJob.AddOrUpdate(() => Console.WriteLine("Rucurring"), "* * * * *", TimeZoneInfo.Local);
+            BackgroundJob.Schedule(() => Console.WriteLine("Schedule Testing"),TimeSpan.FromMinutes(1));
+
+            RecurringJob.AddOrUpdate(() => Console.WriteLine("Rucurring Testing"), "* * * * *", TimeZoneInfo.Local);
 
             var expirationTime = DateTimeOffset.Now.AddHours(1.0);
             cacheData = _context.Coupons.ToList();
