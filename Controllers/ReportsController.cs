@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using ZXing.QrCode;
 
 namespace CodigoTest.Controllers
 {
@@ -18,6 +19,8 @@ namespace CodigoTest.Controllers
         {
             _configuration = configuration;
         }
+  
+
         [HttpGet]
         public JsonResult Get()
         {

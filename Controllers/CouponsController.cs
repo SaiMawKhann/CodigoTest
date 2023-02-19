@@ -7,8 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CodigoTest.Models;
 using System.Drawing;
-using QRCoder;
 using Microsoft.AspNetCore.Authorization;
+using CodigoTest.Cache;
+using Hangfire;
 
 namespace CodigoTest.Controllers
 {
@@ -17,26 +18,41 @@ namespace CodigoTest.Controllers
     public class CouponsController : ControllerBase
     {
         private readonly CodigoTestDatabaseContext _context;
+        private readonly ICacheService _cacheService;
 
-        public CouponsController(CodigoTestDatabaseContext context)
+
+        public CouponsController(CodigoTestDatabaseContext context, ICacheService cacheService)
         {
             _context = context;
+            _cacheService = cacheService;
+
         }
 
         // GET: api/Coupons
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Coupon>>> GetCoupons()
         {
-          if (_context.Coupons == null)
-          {
-              return NotFound();
-          }
+            var cacheData = _cacheService.GetData<IEnumerable<Coupon>>("Coupon");
+
+            if (_context.Coupons == null)
+            {
+                return NotFound();
+            }
+            BackgroundJob.Enqueue(() => Console.WriteLine("GGWP"));
+            BackgroundJob.Schedule(() => Console.WriteLine("Schedule"),TimeSpan.FromMinutes(1));
+
+            RecurringJob.AddOrUpdate(() => Console.WriteLine("Rucurring"), "* * * * *", TimeZoneInfo.Local);
+
+            var expirationTime = DateTimeOffset.Now.AddHours(1.0);
+            cacheData = _context.Coupons.ToList();
+            _cacheService.SetData<IEnumerable<Coupon>>("Coupon", cacheData, expirationTime);
             return await _context.Coupons.ToListAsync();
         }
 
         [HttpGet("GetCouponDetails/{id}")]
         public async Task<ActionResult<Coupon>> GetCouponDetails(int id)
         {
+
             var coupon = _context.Coupons
                                             .Include(pub => pub.MemberCoupons)
                                             .Where(pub => pub.CouponId == id)
@@ -54,7 +70,9 @@ namespace CodigoTest.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Coupon>> GetCoupon(int id)
         {
-          if (_context.Coupons == null)
+            var cacheData = _cacheService.GetData<IEnumerable<Coupon>>("Coupon");
+
+            if (_context.Coupons == null)
           {
               return NotFound();
           }
@@ -65,6 +83,9 @@ namespace CodigoTest.Controllers
                 return NotFound();
             }
 
+            var expirationTime = DateTimeOffset.Now.AddHours(1.0);
+            cacheData = _context.Coupons.ToList();
+            _cacheService.SetData<IEnumerable<Coupon>>("Coupon", cacheData, expirationTime);
             return coupon;
         }
 

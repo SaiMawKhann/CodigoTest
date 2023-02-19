@@ -13,6 +13,9 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authorization;
+using CodigoTest.Cache;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace CodigoTest.Controllers
 {
@@ -23,22 +26,34 @@ namespace CodigoTest.Controllers
     {
         private readonly CodigoTestDatabaseContext _context;
         private readonly JWTSettings _jwtsettings;
+        private readonly ICacheService _cacheService;
 
 
-        public MembersController(CodigoTestDatabaseContext context, IOptions<JWTSettings> jwtsettings)
+
+        public MembersController(CodigoTestDatabaseContext context, IOptions<JWTSettings> jwtsettings, ICacheService cacheService)
         {
             _context = context;
             _jwtsettings = jwtsettings.Value;
+            _cacheService = cacheService;
+
         }
 
         // GET: api/Members
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Member>>> GetMembers()
         {
-          if (_context.Members == null)
-          {
-              return NotFound();
-          }
+            var cacheData = _cacheService.GetData<IEnumerable<Member>>("Member");
+
+            if (_context.Members == null)
+             {
+                return NotFound();
+             }
+
+
+            var expirationTime = DateTimeOffset.Now.AddHours(1.0);
+            cacheData = _context.Members.ToList();
+            _cacheService.SetData<IEnumerable<Member>>("Member", cacheData, expirationTime);
+
             return await _context.Members.ToListAsync();
         }
 
@@ -46,7 +61,9 @@ namespace CodigoTest.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Member>> GetMember(int id)
         {
-          if (_context.Members == null)
+            var cacheData = _cacheService.GetData<IEnumerable<Member>>("Member");
+
+            if (_context.Members == null)
           {
               return NotFound();
           }
@@ -56,6 +73,10 @@ namespace CodigoTest.Controllers
             {
                 return NotFound();
             }
+
+            var expirationTime = DateTimeOffset.Now.AddHours(1.0);
+            cacheData = _context.Members.ToList();
+            _cacheService.SetData<IEnumerable<Member>>("Member", cacheData, expirationTime);
 
             return member;
         }
@@ -267,5 +288,7 @@ namespace CodigoTest.Controllers
         {
             return (_context.Members?.Any(e => e.MemberId == id)).GetValueOrDefault();
         }
+
+       
     }
 }

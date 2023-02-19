@@ -7,6 +7,8 @@ using Microsoft.Extensions.Configuration;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using CodigoTest.Cache;
+using Hangfire;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,17 +18,21 @@ ConfigurationManager configuration = builder.Configuration;
 
 builder.Services.AddControllers();
 
+//Redis
+builder.Services.AddScoped<ICacheService, CacheService>(); 
+
 //Enable CORS
 builder.Services.AddCors(c =>
 {
     c.AddPolicy("AllowOrigin", options => options.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
-builder.Services.AddStackExchangeRedisCache(options =>
+//Enable HandHire Schedular 
+builder.Services.AddHangfire(options =>
 {
-    options.Configuration = configuration.GetSection("RedisConnection").GetValue<string>("Configuration");
-    options.InstanceName = configuration.GetSection("RedisConnection").GetValue<string>("InstanceName");
+    options.UseSqlServerStorage(configuration.GetConnectionString("dbconn"));
 });
+
 
 builder.Services.AddMvc(option => option.EnableEndpointRouting = false)
     .SetCompatibilityVersion(CompatibilityVersion.Version_3_0)
@@ -82,6 +88,9 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboard();
+app.UseHangfireServer();
 
 app.MapControllers();
 
